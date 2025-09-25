@@ -8,6 +8,23 @@ import time
 from flask import Flask, render_template, redirect, url_for, request, jsonify
 import requests
 import dateutil.relativedelta
+from flask import Response, request
+from prometheus_client import (
+    Counter, generate_latest, CONTENT_TYPE_LATEST,
+    CollectorRegistry, ProcessCollector, PlatformCollector, GCCollector
+)
+
+registry = CollectorRegistry()
+ProcessCollector(registry=registry)
+PlatformCollector(registry=registry)
+GCCollector(registry=registry)
+
+REQS = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "endpoint", "code", "job"],
+    registry=registry
+)
 
 app = Flask(__name__)
 app.config["BACKEND_URI"] = 'http://{}/messages'.format(os.environ.get('GUESTBOOK_API_ADDR'))
@@ -44,7 +61,35 @@ def format_duration(timestamp):
             return "{} {}s ago".format(n, unit)
     return "just now"
 
+@app.after_request
+def after_request(resp):
+    try:
+        REQS.labels(
+            method=request.method,
+            endpoint=request.path,
+            code=resp.status_code,
+            job="frontend"
+        ).inc()
+    except Exception:
+        pass
+    return resp
 
+@app.route("/healthz")
+def healthz():
+    return ("ok", 200)
+
+@app.route("/readyz")
+def readyz():
+    return ("ok", 200)
+
+@app.route("/metrics")
+def metrics():
+    return Response(generate_latest(registry), mimetype=CONTENT_TYPE_LATEST)
+
+@app.route("/fail")
+def fail():
+    return ("boom", 500)
+    
 if __name__ == '__main__':
     for v in ['PORT', 'GUESTBOOK_API_ADDR']:
         if os.environ.get(v) is None:
