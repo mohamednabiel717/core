@@ -1,0 +1,14 @@
+image:
+  repository: localhost:5000/python-guestbook-backend
+  tag: dev
+  pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  host: localhost
+
+prometheus:
+  serviceMonitor: { enabled: true, interval: 30s }
+  rule:
+    enabled: true
+    errorRateThreshold: 0.05

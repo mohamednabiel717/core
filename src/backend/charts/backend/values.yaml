@@ -1,0 +1,27 @@
+image:
+  repository: localhost:5000/python-guestbook-backend
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8080
+
+ingress:
+  enabled: true
+  host: localhost           # access via http://localhost or http://localhost:8080 if you mapped 8080
+
+resources:
+  requests: { cpu: 200m, memory: 256Mi }
+  limits:   { cpu: 800m, memory: 512Mi }
+
+env:
+  PORT: "8080"
+  GUESTBOOK_DB_ADDR: "mongodb:27017"
+
+prometheus:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  rule:
+    enabled: false          # we’ll enable in Step 3B after FE is up
+    errorRateThreshold: 0.05

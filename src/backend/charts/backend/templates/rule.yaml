@@ -1,0 +1,41 @@
+{{- if .Values.prometheus.rule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "backend.fullname" . }}-rules
+  labels:
+    release: monitoring
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  groups:
+  - name: backend
+    rules:
+    - record: job:http_5xx_rate:ratio
+      expr: |
+        sum(rate(http_requests_total{job="backend",code=~"5.."}[5m]))
+        / sum(rate(http_requests_total{job="backend"}[5m]))
+    - record: job:http_4xx_rate:ratio
+      expr: |
+        sum(rate(http_requests_total{job="backend",code=~"4.."}[5m]))
+        / sum(rate(http_requests_total{job="backend"}[5m]))
+    - alert: BackendHighErrorRate
+      expr: job:http_5xx_rate:ratio > {{ .Values.prometheus.rule.errorRateThreshold }}
+      for: 5m
+      labels: { severity: page, service: backend, env: local }
+      annotations: { summary: "Backend 5xx error rate > {{ .Values.prometheus.rule.errorRateThreshold }} for 5m" }
+    - alert: BackendHighClientErrorRate
+      expr: job:http_4xx_rate:ratio > 0.1
+      for: 5m
+      labels: { severity: warning, service: backend, env: local }
+      annotations: { summary: "Backend 4xx error rate > 10% for 5m" }
+    - alert: BackendHealthCheckFailing
+      expr: up{job="backend"} == 0
+      for: 1m
+      labels: { severity: critical, service: backend, env: local }
+      annotations: { summary: "Backend health check failing" }
+    - alert: BackendHighLatency
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="backend"}[5m])) > 1
+      for: 5m
+      labels: { severity: warning, service: backend, env: local }
+      annotations: { summary: "Backend 95th percentile latency > 1s" }
+{{- end }}
