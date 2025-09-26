@@ -1,0 +1,33 @@
+{{- if .Values.prometheus.rule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "frontend.fullname" . }}-rules
+  labels:
+    release: monitoring
+    {{- include "frontend.labels" . | nindent 4 }}
+spec:
+  groups:
+  - name: frontend
+    rules:
+    # Compute 5xx error rate for the frontend
+    - record: job:http_5xx_rate:ratio
+      expr: |
+        sum(rate(http_requests_total{job="frontend",code=~"5.."}[5m]))
+        /
+        sum(rate(http_requests_total{job="frontend"}[5m]))
+    # Page when the 5xx rate is high for a few minutes
+    - alert: FrontendHighErrorRate
+      expr: job:http_5xx_rate:ratio > {{ .Values.prometheus.rule.errorRateThreshold }}
+      for: 5m
+      labels: { severity: page, service: frontend, env: local }
+      annotations:
+        summary: "Frontend 5xx > {{ .Values.prometheus.rule.errorRateThreshold }} for 5m"
+    # Availability (alert if all pods are down)
+    - alert: FrontendDown
+      expr: sum(up{job=~"serviceMonitor/.*/frontend/.*"}) == 0
+      for: 2m
+      labels: { severity: page, service: frontend, env: local }
+      annotations:
+        summary: "Frontend is not responding (no scrape targets UP)"
+{{- end }}

@@ -1,12 +1,18 @@
 image:
-  repository: localhost:5000/python-guestbook-backend
+  repository: localhost:5000/python-guestbook-frontend
   tag: dev
   pullPolicy: IfNotPresent
+
+service:
+  port: 8080
+
+env:
+  PORT: "8080"
+  GUESTBOOK_API_ADDR: "http://backend:80"
 
 ingress:
   enabled: true
   host: localhost
-  path: /api
 
 prometheus:
   serviceMonitor: { enabled: true, interval: 30s }

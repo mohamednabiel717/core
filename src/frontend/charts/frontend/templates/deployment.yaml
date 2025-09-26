@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "frontend.fullname" . }}
+  labels: {{- include "frontend.labels" . | nindent 2 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "frontend.name" . }}
+  template:
+    metadata:
+      labels:
+        {{- include "frontend.labels" . | nindent 8 }}
+        app: python-guestbook
+        tier: frontend
+    spec:
+      securityContext: { runAsNonRoot: true, fsGroup: 2000 }
+      containers:
+      - name: app
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports: [{ name: http, containerPort: {{ .Values.service.port }} }]
+        env:
+        - { name: PORT, value: "{{ .Values.env.PORT }}" }
+        - { name: GUESTBOOK_API_ADDR, value: "{{ .Values.env.GUESTBOOK_API_ADDR }}" }
+        readinessProbe: { httpGet: { path: /readyz, port: http }, initialDelaySeconds: 5, periodSeconds: 5 }
+        livenessProbe:  { httpGet: { path: /healthz, port: http }, initialDelaySeconds: 10, periodSeconds: 10 }
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: { drop: ["ALL"] }
+        resources: {{- toYaml .Values.resources | nindent 10 }}
