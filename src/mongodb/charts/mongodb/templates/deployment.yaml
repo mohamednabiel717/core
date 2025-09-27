@@ -40,6 +40,9 @@ spec:
         args:
           - "--mongodb.uri=mongodb://127.0.0.1:27017"
           - "--compatible-mode"
+          - "--collect-all"
+          - "--discovering-mode"
+          - "--log.level=debug"
         ports:
           - name: metrics
             containerPort: 9216

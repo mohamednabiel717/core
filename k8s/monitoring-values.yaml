@@ -3,7 +3,6 @@
 alertmanager:
   enabled: true
   alertmanagerSpec:
-    # Tell Alertmanager to load its config from the Secret we created
     configSecret: alertmanager-config
 
 grafana:

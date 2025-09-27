@@ -1,0 +1,204 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-starter-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  app-starter.json: |
+    {
+      "title": "Guestbook Application Dashboard",
+      "timezone": "browser",
+      "time": { "from": "now-1h", "to": "now" },
+      "refresh": "30s",
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Frontend RPS",
+          "id": 1,
+          "targets": [
+            { "expr": "sum(rate(http_requests_total{job=\"frontend\"}[1m]))", "legendFormat": "Frontend" }
+          ],
+          "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+          "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "thresholds" } } }
+        },
+        {
+          "type": "stat",
+          "title": "Backend RPS",
+          "id": 2,
+          "targets": [
+            { "expr": "sum(rate(http_requests_total{job=\"backend\"}[1m]))", "legendFormat": "Backend" }
+          ],
+          "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+          "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "thresholds" } } }
+        },
+        {
+          "type": "stat",
+          "title": "5xx Error Rate (Alert: >5%)",
+          "id": 3,
+          "targets": [
+            { "expr": "sum(rate(http_requests_total{code=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))", "legendFormat": "Error Rate" }
+          ],
+          "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+          "fieldConfig": { "defaults": { "unit": "percentunit", "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green", "value": 0 }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 } ] } } }
+        },
+        {
+          "type": "stat",
+          "title": "MongoDB Connections",
+          "id": 4,
+          "targets": [
+            { "expr": "mongodb_connections{state=\"current\"}", "legendFormat": "Active" }
+          ],
+          "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+          "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" } } }
+        },
+        {
+          "type": "timeseries",
+          "title": "HTTP Request Rate by Service",
+          "id": 5,
+          "targets": [
+            { "expr": "sum(rate(http_requests_total{job=\"frontend\"}[1m])) by (job)", "legendFormat": "Frontend" },
+            { "expr": "sum(rate(http_requests_total{job=\"backend\"}[1m])) by (job)", "legendFormat": "Backend" }
+          ],
+          "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "MongoDB Database Stats",
+          "id": 6,
+          "targets": [
+            { "expr": "mongodb_dbstats_objects{database=\"guestbook\"}", "legendFormat": "Guestbook Documents" },
+            { "expr": "mongodb_dbstats_collections{database=\"guestbook\"}", "legendFormat": "Guestbook Collections" },
+            { "expr": "sum(mongodb_dbstats_objects)", "legendFormat": "Total Documents" },
+            { "expr": "sum(mongodb_dbstats_dataSize)", "legendFormat": "Total Data Size (bytes)" }
+          ],
+          "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "short" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Request Endpoints",
+          "id": 7,
+          "targets": [
+            { "expr": "sum(rate(http_requests_total{exported_endpoint=\"/messages\"}[1m]))", "legendFormat": "/messages API" },
+            { "expr": "sum(rate(http_requests_total{exported_endpoint=\"/healthz\"}[1m]))", "legendFormat": "Health checks" },
+            { "expr": "sum(rate(http_requests_total{exported_endpoint=\"/fail\"}[1m]))", "legendFormat": "Test failures" },
+            { "expr": "sum(rate(http_requests_total{exported_endpoint=\"/readyz\"}[1m]))", "legendFormat": "Ready checks" }
+          ],
+          "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "reqps" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "MongoDB Operations & Performance",
+          "id": 8,
+          "targets": [
+            { "expr": "rate(mongodb_op_counters_total{type=\"insert\"}[1m])", "legendFormat": "Inserts/sec" },
+            { "expr": "rate(mongodb_op_counters_total{type=\"query\"}[1m])", "legendFormat": "Queries/sec" },
+            { "expr": "rate(mongodb_op_counters_total{type=\"update\"}[1m])", "legendFormat": "Updates/sec" },
+            { "expr": "mongodb_connections{state=\"current\"}", "legendFormat": "Active Connections" }
+          ],
+          "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "short" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "CPU Usage by Pod (Alert: >90%)",
+          "id": 9,
+          "targets": [
+            { "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"guestbook\",container!=\"\"}[5m])) by (pod) * 100", "legendFormat": "{{pod}}" },
+            { "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"data\",container!=\"\"}[5m])) by (pod) * 100", "legendFormat": "{{pod}} (MongoDB)" }
+          ],
+          "gridPos": { "x": 0, "y": 20, "w": 8, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "percent", "custom": { "thresholdsStyle": { "mode": "line" } }, "thresholds": { "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 90 } ] } } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory Usage by Pod (Alert: >90%)",
+          "id": 10,
+          "targets": [
+            { "expr": "(sum(container_memory_working_set_bytes{namespace=\"guestbook\",container!=\"\"}) by (pod) / sum(container_spec_memory_limit_bytes{namespace=\"guestbook\",container!=\"\"}) by (pod)) * 100", "legendFormat": "{{pod}} %" },
+            { "expr": "(sum(container_memory_working_set_bytes{namespace=\"data\",container!=\"\"}) by (pod) / sum(container_spec_memory_limit_bytes{namespace=\"data\",container!=\"\"}) by (pod)) * 100", "legendFormat": "{{pod}} % (MongoDB)" }
+          ],
+          "gridPos": { "x": 8, "y": 20, "w": 8, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "percent", "custom": { "thresholdsStyle": { "mode": "line" } }, "thresholds": { "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 90 } ] } } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Storage I/O",
+          "id": 11,
+          "targets": [
+            { "expr": "sum(rate(container_fs_reads_bytes_total{namespace=~\"guestbook|data\"}[5m])) by (namespace) / 1024 / 1024", "legendFormat": "{{namespace}} Read MB/s" },
+            { "expr": "sum(rate(container_fs_writes_bytes_total{namespace=~\"guestbook|data\"}[5m])) by (namespace) / 1024 / 1024", "legendFormat": "{{namespace}} Write MB/s" }
+          ],
+          "gridPos": { "x": 16, "y": 20, "w": 8, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "MBs" } }
+        },
+        {
+          "type": "table",
+          "title": "Active Alerts",
+          "id": 12,
+          "targets": [
+            { "expr": "ALERTS{alertstate=\"firing\",alertname=~\".*Backend.*|.*Frontend.*|.*MongoDB.*|.*High.*|.*Down.*\"}", "format": "table", "instant": true }
+          ],
+          "gridPos": { "x": 0, "y": 28, "w": 8, "h": 8 },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": { "Time": true, "__name__": true, "alertstate": true, "instance": true, "job": true },
+                "renameByName": { "alertname": "Alert", "severity": "Severity" }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "Severity" },
+                "properties": [
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-background",
+                      "mode": "basic"
+                    }
+                  },
+                  {
+                    "id": "mappings",
+                    "value": [
+                      { "options": { "critical": { "color": "red" } }, "type": "value" },
+                      { "options": { "warning": { "color": "yellow" } }, "type": "value" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Network Traffic",
+          "id": 13,
+          "targets": [
+            { "expr": "sum(rate(container_network_receive_bytes_total{namespace=~\"guestbook|data\"}[5m])) by (namespace) / 1024", "legendFormat": "{{namespace}} RX KB/s" },
+            { "expr": "sum(rate(container_network_transmit_bytes_total{namespace=~\"guestbook|data\"}[5m])) by (namespace) / 1024", "legendFormat": "{{namespace}} TX KB/s" }
+          ],
+          "gridPos": { "x": 8, "y": 28, "w": 8, "h": 8 },
+          "fieldConfig": { "defaults": { "unit": "KBs" } }
+        },
+        {
+          "type": "logs",
+          "title": "Application Logs",
+          "id": 14,
+          "datasource": { "type": "loki" },
+          "targets": [
+            { "expr": "{namespace=\"guestbook\"}", "refId": "A" }
+          ],
+          "gridPos": { "x": 16, "y": 28, "w": 8, "h": 8 },
+          "options": { "showTime": true, "showLabels": true, "sortOrder": "Descending" }
+        }
+      ],
+      "schemaVersion": 39
+    }
