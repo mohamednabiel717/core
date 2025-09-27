@@ -1,0 +1,39 @@
+# Values for kube-prometheus-stack
+
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    # Tell Alertmanager to load its config from the Secret we created
+    configSecret: alertmanager-config
+
+grafana:
+  adminPassword: admin
+  service:
+    port: 80
+    targetPort: 3000
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Loki
+        type: loki
+        url: http://loki.logging:3100
+        access: proxy
+  
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false

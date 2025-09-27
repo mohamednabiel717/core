@@ -5,6 +5,20 @@ REG_NAME=kind-registry
 REG_PORT=5000
 CLUSTER=infra-task
 
+# Check if cluster already exists
+if kind get clusters | grep -q "^${CLUSTER}$"; then
+  echo "⚠️  Cluster '${CLUSTER}' already exists."
+  read -p "Delete and recreate? (y/N): " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "🗑️  Deleting existing cluster..."
+    kind delete cluster --name "${CLUSTER}"
+  else
+    echo "ℹ️  Using existing cluster. Run 'kind delete cluster --name ${CLUSTER}' to remove it."
+    exit 0
+  fi
+fi
+
 # 0) start local registry if not running
 if [ "$(docker inspect -f '{{.State.Running}}' "${REG_NAME}" 2>/dev/null || true)" != 'true' ]; then
   docker run -d --restart=always -p "127.0.0.1:${REG_PORT}:5000" --name "${REG_NAME}" registry:2
@@ -28,9 +42,9 @@ nodes:
         node-labels: "ingress-ready=true"
   extraPortMappings:
   - containerPort: 80
-    hostPort: 80
+    hostPort: 8080
   - containerPort: 443
-    hostPort: 443
+    hostPort: 8443
 EOF
 
 # 2) connect registry to kind network
@@ -59,10 +73,11 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
 # 6) monitoring stack (Prometheus, Alertmanager, Grafana)
-kubectl create ns monitoring 2>/dev/null || true
+# Install monitoring stack (Prometheus, Alertmanager, Grafana)
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
-  -n monitoring --wait
-
+  -n monitoring --create-namespace \
+  -f k8s/monitoring-values.yaml \
+  --wait
 # 7) logging stack (Loki + Promtail)
 kubectl create ns logging 2>/dev/null || true
 helm upgrade --install loki grafana/loki-stack -n logging --wait

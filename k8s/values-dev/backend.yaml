@@ -3,6 +3,13 @@ image:
   tag: dev
   pullPolicy: IfNotPresent
 
+service:
+  port: 8080
+
+env:
+  PORT: "8080"
+  GUESTBOOK_DB_ADDR: "python-guestbook-mongodb:27017"
+
 ingress:
   enabled: true
   host: localhost

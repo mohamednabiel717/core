@@ -6,6 +6,10 @@ image:
 service:
   port: 8080
 
+env:
+  PORT: "8080"
+  GUESTBOOK_API_ADDR: "backend:80"
+
 ingress:
   enabled: true
   host: localhost  # access via http://localhost (or http://localhost:8080 if your kind mapped 8080)

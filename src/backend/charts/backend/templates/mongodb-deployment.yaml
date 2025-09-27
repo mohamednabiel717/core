@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-guestbook-mongodb
+  labels:
+    app: python-guestbook
+    tier: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-guestbook
+      tier: db
+  template:
+    metadata:
+      labels:
+        app: python-guestbook
+        tier: db
+    spec:
+      containers:
+      - name: mongo
+        image: mongo:4
+        ports:
+        - containerPort: 27017
