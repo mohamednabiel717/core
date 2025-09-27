@@ -20,3 +20,8 @@ prometheus:
   rule:
     enabled: true
     errorRateThreshold: 0.05
+pdb: { enabled: true, minAvailable: 1 }
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3

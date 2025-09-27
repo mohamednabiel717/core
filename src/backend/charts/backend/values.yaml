@@ -25,3 +25,26 @@ prometheus:
   rule:
     enabled: false          # we’ll enable in Step 3B after FE is up
     errorRateThreshold: 0.05
+pdb:
+  enabled: true
+  minAvailable: 1          # with replicas=1 this blocks voluntary evictions
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    # Use CPU % of requested as the primary signal
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Optional second signal: memory
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

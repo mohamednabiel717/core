@@ -73,12 +73,12 @@ helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
 # install metrics-server (for HPA)
-helm repo add bitnami https://charts.bitnami.com/bitnami >/dev/null 2>&1 || true
+helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/ >/dev/null 2>&1 || true
 helm repo update >/dev/null 2>&1 || true
-helm upgrade --install metrics-server bitnami/metrics-server \
+
+helm upgrade --install metrics-server metrics-server/metrics-server \
   -n kube-system \
-  --set apiService.create=true \
-  --set args={"--kubelet-insecure-tls","--kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP"} \
+  --set 'args={--kubelet-insecure-tls,--kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP}' \
   --wait
 
 # 6) monitoring stack (Prometheus, Alertmanager, Grafana)

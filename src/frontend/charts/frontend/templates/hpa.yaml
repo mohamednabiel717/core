@@ -1,0 +1,17 @@
+{{- if .Values.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "frontend.fullname" . | default .Chart.Name }}
+  labels:
+    {{- if (include "frontend.labels" .) }}{{ include "frontend.labels" . | nindent 4 }}{{- end }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "frontend.fullname" . | default .Chart.Name }}
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  metrics:
+{{- toYaml .Values.hpa.metrics | nindent 4 }}
+{{- end }}
