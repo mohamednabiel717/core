@@ -1,0 +1,13 @@
+# Enable Prometheus scraping and label it so kube-prometheus-stack discovers it
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  additionalLabels:
+    release: monitoring
+
+# (Optional) override images/tags here if you ever need to
+# image:
+#   tag: 7.0.14-ubuntu2204
+# exporter:
+#   image:
+#     tag: "0.40.0"

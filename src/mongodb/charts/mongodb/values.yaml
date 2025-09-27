@@ -1,0 +1,28 @@
+image:
+  repository: mongodb/mongodb-community-server
+  tag: 7.0.14-ubuntu2204
+  pullPolicy: IfNotPresent
+
+exporter:
+  image:
+    repository: percona/mongodb_exporter
+    tag: "0.40.0"
+    pullPolicy: IfNotPresent
+
+resources:
+  mongod:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+  exporter:
+    requests: { cpu: 50m,  memory: 64Mi }
+    limits:   { cpu: 200m, memory: 256Mi }
+
+persistence:
+  enabled: false             # emptyDir for kind (ephemeral)
+
+fullnameOverride: mongodb    # Service DNS => mongodb.<ns>.svc
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  additionalLabels: {}       # e.g. { release: monitoring }

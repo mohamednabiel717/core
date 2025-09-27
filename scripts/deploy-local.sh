@@ -3,8 +3,16 @@ set -euo pipefail
 
 NS=guestbook
 REG=localhost:5000
+DBNS=data
 
 kubectl get ns $NS >/dev/null 2>&1 || kubectl create ns $NS
+kubectl get ns "$DBNS" >/dev/null 2>&1 || kubectl create ns "$DBNS"
+
+
+# --- MongoDB (Homemade) ---
+# Install our local Mongo chart (separate release)
+helm upgrade --install mongodb src/mongodb/charts/mongodb \
+  -n "$DBNS" -f k8s/values-dev/mongodb.yaml --wait
 
 # build & push backend
 docker build -t ${REG}/python-guestbook-backend:dev ../src/backend
@@ -25,6 +33,10 @@ helm upgrade --install frontend ../src/frontend/charts/frontend \
   -n $NS -f ../k8s/values-dev/frontend.yaml --wait
 
 kubectl -n $NS get pods,svc,ingress
+kubectl -n "$NS" get pods,svc,ingress
+echo "Mongo in '$DBNS' ns:"
+kubectl -n "$DBNS" get pods,svc
+
 echo "➡ Services ready. Try:"
 echo "   curl -v http://localhost/api/healthz      # backend health"
 echo "   curl -v http://localhost/               # frontend app"

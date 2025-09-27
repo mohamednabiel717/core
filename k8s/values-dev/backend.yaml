@@ -8,7 +8,7 @@ service:
 
 env:
   PORT: "8080"
-  GUESTBOOK_DB_ADDR: "python-guestbook-mongodb:27017"
+  GUESTBOOK_DB_ADDR: "mongodb.data:27017"   # <— important (cross-namespace)
 
 ingress:
   enabled: true
