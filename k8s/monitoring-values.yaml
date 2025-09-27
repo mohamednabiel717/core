@@ -1,5 +1,4 @@
 # Values for kube-prometheus-stack
-
 alertmanager:
   enabled: true
   alertmanagerSpec:
@@ -16,7 +15,7 @@ grafana:
       datasources:
       - name: Loki
         type: loki
-        url: http://loki.logging:3100
+        url: http://loki.logging.svc.cluster.local:3100
         access: proxy
   
   dashboardProviders:

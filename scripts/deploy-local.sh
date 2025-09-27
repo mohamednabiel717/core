@@ -7,6 +7,16 @@ DBNS=data
 
 kubectl get ns $NS >/dev/null 2>&1 || kubectl create ns $NS
 kubectl get ns "$DBNS" >/dev/null 2>&1 || kubectl create ns "$DBNS"
+kubectl get ns monitoring >/dev/null 2>&1 || kubectl create ns monitoring
+
+# --- Alertmanager Configuration ---
+echo "[*] Configuring Alertmanager"
+# Create alertmanager-config secret from existing config
+echo "    creating alertmanager-config secret..."
+kubectl create secret generic alertmanager-config -n monitoring \
+  --from-file=alertmanager.yml=secrets/alertmanager.yaml \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 
 # --- Grafana Dashboards ---
 echo "[*] Deploying Grafana dashboards"
