@@ -9,7 +9,7 @@ import bleach
 
 # ---- Observability (Prometheus) --------------------------------------------
 from prometheus_client import (
-    Counter, generate_latest, CONTENT_TYPE_LATEST,
+    Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST,
     CollectorRegistry, ProcessCollector, PlatformCollector, GCCollector,
 )
 
@@ -26,6 +26,13 @@ HTTP_REQUESTS = Counter(
     registry=registry,
 )
 
+HTTP_REQUEST_DURATION = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "endpoint", "job"],
+    registry=registry,
+)
+
 # ---- App -------------------------------------------------------------------
 app = Flask(__name__)
 
@@ -39,9 +46,23 @@ else:
 
 # ---- Routes ----------------------------------------------------------------
 
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
 @app.after_request
 def after_request(resp):
     try:
+        # Record request duration
+        if hasattr(request, 'start_time'):
+            duration = time.time() - request.start_time
+            HTTP_REQUEST_DURATION.labels(
+                method=request.method,
+                endpoint=request.path,
+                job="backend",
+            ).observe(duration)
+        
+        # Record request count
         HTTP_REQUESTS.labels(
             method=request.method,
             endpoint=request.path,
