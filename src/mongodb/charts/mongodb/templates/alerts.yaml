@@ -12,7 +12,7 @@ spec:
   - name: mongodb
     rules:
     - alert: MongoDBDown
-      expr: up{job="mongodb"} == 0
+      expr: up{job="mongodb-metrics"} == 0 or absent(up{job="mongodb-metrics"}) == 1
       for: 1m
       labels:
         severity: critical
@@ -29,4 +29,22 @@ spec:
         env: {{ .Values.alerts.env | default "local" }}
       annotations:
         summary: "MongoDB has high number of connections ({{ "{{ $value }}" }})"
+    - alert: MongoDBHighMemoryUsage
+      expr: container_memory_usage_bytes{pod=~"mongodb-.*"} / container_spec_memory_limit_bytes > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        service: mongodb
+        env: {{ .Values.alerts.env | default "local" }}
+      annotations:
+        summary: "MongoDB pod memory usage > 80%"
+    - alert: MongoDBPodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total{pod=~"mongodb-.*"}[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        service: mongodb
+        env: {{ .Values.alerts.env | default "local" }}
+      annotations:
+        summary: "MongoDB pod is crash looping"
 {{- end }}

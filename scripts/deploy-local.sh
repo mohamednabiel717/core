@@ -13,28 +13,11 @@ kubectl get ns monitoring >/dev/null 2>&1 || kubectl create ns monitoring
 
 
 
-# --- AlertmanagerConfig & PagerDuty secret ---
-echo "[*] Wiring PagerDuty"
-if [[ -z "${PD_ROUTING_KEY:-}" ]]; then
-  echo "❌ Error: PD_ROUTING_KEY environment variable is required"
-  echo "   Set it with: export PD_ROUTING_KEY='your-pagerduty-integration-key'"
-  exit 1
-fi
-
-kubectl -n monitoring create secret generic pagerduty-secret \
-  --from-literal=routing-key="${PD_ROUTING_KEY}" \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-kubectl -n monitoring apply -f k8s/alertmanager-config.yaml
-
-# Bounce Alertmanager to pick up changes quickly
-kubectl -n monitoring rollout restart statefulset/alertmanager-monitoring-kube-prometheus-alertmanager
-kubectl -n monitoring rollout status  statefulset/alertmanager-monitoring-kube-prometheus-alertmanager --timeout=180s
+echo "[*] Deploying applications (PagerDuty already configured in monitoring stack)"
 
 # --- Grafana Dashboards ---
 echo "[*] Deploying Grafana dashboards"
 DASH_SRC="k8s/dashboards/app-starter.json"
-CM_TPL="k8s/dashboards/app-starter-cm.yaml.tpl"
 CM_OUT="k8s/dashboards/app-starter-cm.yaml"
 
 # Create the ConfigMap directly

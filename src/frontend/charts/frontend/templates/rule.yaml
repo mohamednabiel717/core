@@ -20,14 +20,26 @@ spec:
     - alert: FrontendHighErrorRate
       expr: job:http_5xx_rate:ratio > {{ .Values.prometheus.rule.errorRateThreshold }}
       for: 5m
-      labels: { severity: page, service: frontend, env: local }
+      labels: { severity: critical, service: frontend, env: local }
       annotations:
         summary: "Frontend 5xx > {{ .Values.prometheus.rule.errorRateThreshold }} for 5m"
     # Availability (alert if all pods are down)
     - alert: FrontendDown
-      expr: sum(up{job=~"serviceMonitor/.*/frontend/.*"}) == 0
+      expr: up{job="frontend"} == 0 or absent(up{job="frontend"}) == 1
       for: 2m
-      labels: { severity: page, service: frontend, env: local }
+      labels: { severity: critical, service: frontend, env: local }
       annotations:
         summary: "Frontend is not responding (no scrape targets UP)"
+    - alert: FrontendHighMemoryUsage
+      expr: container_memory_usage_bytes{pod=~"frontend-.*"} / container_spec_memory_limit_bytes > 0.8
+      for: 5m
+      labels: { severity: warning, service: frontend, env: local }
+      annotations:
+        summary: "Frontend pod memory usage > 80%"
+    - alert: FrontendPodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total{pod=~"frontend-.*"}[15m]) > 0
+      for: 5m
+      labels: { severity: critical, service: frontend, env: local }
+      annotations:
+        summary: "Frontend pod is crash looping"
 {{- end }}

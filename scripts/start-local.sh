@@ -86,6 +86,9 @@ helm upgrade --install metrics-server metrics-server/metrics-server \
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   -n monitoring --create-namespace \
   -f k8s/monitoring-values.yaml \
+  --set-string alertmanager.config.receivers[0].pagerduty_configs[0].routing_key="${PD_ROUTING_KEY:-}" \
+  --set-string alertmanager.config.receivers[1].pagerduty_configs[0].routing_key="${PD_ROUTING_KEY:-}" \
+  --set-string alertmanager.config.receivers[2].pagerduty_configs[0].routing_key="${PD_ROUTING_KEY:-}" \
   --wait
 # 7) logging stack (Loki + Promtail)
 kubectl create ns logging 2>/dev/null || true

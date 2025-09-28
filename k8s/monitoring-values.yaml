@@ -1,12 +1,41 @@
 # Values for kube-prometheus-stack
 alertmanager:
   enabled: true
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 30s
+      receiver: 'pagerduty'
+      routes:
+      - match:
+          severity: critical
+        receiver: 'pagerduty-critical'
+      - match:
+          severity: warning
+        receiver: 'pagerduty-warning'
+    receivers:
+    - name: 'pagerduty-critical'
+      pagerduty_configs:
+      - routing_key: 'PLACEHOLDER_ROUTING_KEY'
+        severity: critical
+        description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        client: 'Kubernetes Monitoring'
+    - name: 'pagerduty-warning'
+      pagerduty_configs:
+      - routing_key: 'PLACEHOLDER_ROUTING_KEY'
+        severity: warning
+        description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        client: 'Kubernetes Monitoring'
+    - name: 'pagerduty'
+      pagerduty_configs:
+      - routing_key: 'PLACEHOLDER_ROUTING_KEY'
+        description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        client: 'Kubernetes Monitoring'
   alertmanagerSpec:
-    # Use AlertmanagerConfig CRDs instead of configSecret
-    alertmanagerConfigSelector:
-      matchLabels:
-        alertmanagerConfig: main
-    alertmanagerConfigNamespaceSelector: {}
     storage:
       volumeClaimTemplate:
         spec:
@@ -61,3 +90,22 @@ prometheus:
           resources:
             requests:
               storage: 10Gi
+    additionalPrometheusRulesMap:
+      custom-infrastructure:
+        groups:
+        - name: custom-infrastructure
+          rules:
+          - alert: IngressControllerDown
+            expr: up{job="ingress-nginx-controller-metrics"} == 0 or absent(up{job="ingress-nginx-controller-metrics"}) == 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Ingress controller is down"
+          - alert: PodOOMKilled
+            expr: increase(kube_pod_container_status_terminated_reason{reason="OOMKilled"}[5m]) > 0
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Pod {{ $labels.pod }} was OOM killed in namespace {{ $labels.namespace }}"

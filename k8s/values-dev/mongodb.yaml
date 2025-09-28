@@ -7,6 +7,7 @@ serviceMonitor:
 
 alerts:
   enabled: true
+  namespace: monitoring
 
 resourceQuota:
   enabled: true
