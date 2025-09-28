@@ -125,7 +125,6 @@ if [ -n "${PD_ROUTING_KEY:-}" ]; then
     -n monitoring --dry-run=client -o yaml | kubectl apply -f -
   
   if [ $? -eq 0 ]; then
-    kubectl apply -f k8s/alertmanager-config.yaml
     echo "[INFO] PagerDuty integration configured successfully"
   else
     echo "[ERROR] Failed to create PagerDuty secret"
