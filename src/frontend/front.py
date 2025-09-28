@@ -27,7 +27,7 @@ REQS = Counter(
 )
 
 app = Flask(__name__)
-app.config["BACKEND_URI"] = 'http://{}/messages'.format(os.environ.get('GUESTBOOK_API_ADDR'))
+app.config["BACKEND_URI"] = 'http://{}/api/messages'.format(os.environ.get('GUESTBOOK_API_ADDR'))
 
 @app.route('/')
 def main():

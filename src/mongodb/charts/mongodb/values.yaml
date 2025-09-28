@@ -19,10 +19,34 @@ resources:
 
 persistence:
   enabled: false             # emptyDir for kind (ephemeral)
+  size: 1Gi                  # small size for local dev
+  storageClass: ""           # use default storage class
 
 fullnameOverride: mongodb    # Service DNS => mongodb.<ns>.svc
 
 serviceMonitor:
-  enabled: false
+  enabled: true
   interval: 30s
-  additionalLabels: {}       # e.g. { release: monitoring }
+  additionalLabels:
+    release: monitoring
+
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+
+alerts:
+  enabled: false
+  namespace: monitoring
+  env: local
+  connectionThreshold: 80
+
+resourceQuota:
+  enabled: false
+  requests:
+    cpu: "1"
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+  pods: "5"
+  pvcs: "5"

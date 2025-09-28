@@ -90,8 +90,7 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
 # 7) logging stack (Loki + Promtail)
 kubectl create ns logging 2>/dev/null || true
 helm upgrade --install loki grafana/loki-stack -n logging \
-  --set grafana.enabled=false \
-  --set prometheus.enabled=false \
+  -f k8s/loki-values.yaml \
   --wait
 
 echo "✅ Cluster up. Grafana: 'kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80'"

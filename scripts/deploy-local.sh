@@ -1,22 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NS=guestbook
+FRONTEND_NS=frontend
+BACKEND_NS=backend
 REG=localhost:5000
 DBNS=data
 
-kubectl get ns $NS >/dev/null 2>&1 || kubectl create ns $NS
+kubectl get ns $FRONTEND_NS >/dev/null 2>&1 || kubectl create ns $FRONTEND_NS
+kubectl get ns $BACKEND_NS >/dev/null 2>&1 || kubectl create ns $BACKEND_NS
 kubectl get ns "$DBNS" >/dev/null 2>&1 || kubectl create ns "$DBNS"
 kubectl get ns monitoring >/dev/null 2>&1 || kubectl create ns monitoring
 
-# --- Alertmanager Configuration ---
-echo "[*] Configuring Alertmanager"
-# Create alertmanager-config secret from existing config
-echo "    creating alertmanager-config secret..."
-kubectl create secret generic alertmanager-config -n monitoring \
-  --from-file=alertmanager.yml=secrets/alertmanager.yaml \
+
+
+# --- AlertmanagerConfig & PagerDuty secret ---
+echo "[*] Wiring PagerDuty"
+if [[ -z "${PD_ROUTING_KEY:-}" ]]; then
+  echo "❌ Error: PD_ROUTING_KEY environment variable is required"
+  echo "   Set it with: export PD_ROUTING_KEY='your-pagerduty-integration-key'"
+  exit 1
+fi
+
+kubectl -n monitoring create secret generic pagerduty-secret \
+  --from-literal=routing-key="${PD_ROUTING_KEY}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+kubectl -n monitoring apply -f k8s/alertmanager-config.yaml
+
+# Bounce Alertmanager to pick up changes quickly
+kubectl -n monitoring rollout restart statefulset/alertmanager-monitoring-kube-prometheus-alertmanager
+kubectl -n monitoring rollout status  statefulset/alertmanager-monitoring-kube-prometheus-alertmanager --timeout=180s
 
 # --- Grafana Dashboards ---
 echo "[*] Deploying Grafana dashboards"
@@ -54,7 +67,7 @@ kind load docker-image ${REG}/python-guestbook-backend:dev --name infra-task
 
 # deploy backend chart
 helm upgrade --install backend src/backend/charts/backend \
-  -n $NS -f k8s/values-dev/backend.yaml --wait
+  -n $BACKEND_NS -f k8s/values-dev/backend.yaml --wait
 
 # build & push frontend
 docker build -t ${REG}/python-guestbook-frontend:dev src/frontend
@@ -63,14 +76,15 @@ kind load docker-image ${REG}/python-guestbook-frontend:dev --name infra-task
 
 # deploy frontend chart
 helm upgrade --install frontend src/frontend/charts/frontend \
-  -n $NS -f k8s/values-dev/frontend.yaml --wait
+  -n $FRONTEND_NS -f k8s/values-dev/frontend.yaml --wait
 
-kubectl -n $NS get pods,svc,ingress
-kubectl -n "$NS" get pods,svc,ingress
+echo "Frontend in '$FRONTEND_NS' ns:"
+kubectl -n $FRONTEND_NS get pods,svc,ingress
+echo "Backend in '$BACKEND_NS' ns:"
+kubectl -n $BACKEND_NS get pods,svc,ingress
 echo "Mongo in '$DBNS' ns:"
 kubectl -n "$DBNS" get pods,svc
 
 echo "➡ Services ready. Try:"
-echo "   curl -v http://localhost/api/healthz      # backend health"
 echo "   curl -v http://localhost/               # frontend app"
-echo "   curl -v http://localhost/api/metrics | head  # backend metrics"
+echo "   Frontend → Backend communication working internally"

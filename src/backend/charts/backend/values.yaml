@@ -16,14 +16,14 @@ resources:
 
 env:
   PORT: "8080"
-  GUESTBOOK_DB_ADDR: "mongodb:27017"
+  GUESTBOOK_DB_ADDR: "mongodb.data:27017"
 
 prometheus:
   serviceMonitor:
     enabled: true
     interval: 30s
   rule:
-    enabled: false          # we’ll enable in Step 3B after FE is up
+    enabled: true          # we’ll enable in Step 3B after FE is up
     errorRateThreshold: 0.05
 pdb:
   enabled: true
@@ -48,3 +48,14 @@ hpa:
         target:
           type: Utilization
           averageUtilization: 80
+
+resourceQuota:
+  enabled: false
+  requests:
+    cpu: "2"
+    memory: 2Gi
+  limits:
+    cpu: "4"
+    memory: 4Gi
+  pods: "10"
+  pvcs: "2"

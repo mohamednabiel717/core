@@ -1,9 +1,10 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: mongodb
-  labels: {{- include "mongodb.labels" . | nindent 2 }}
+  name: {{ include "mongodb.fullname" . }}
+  labels: {{- include "mongodb.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "mongodb.fullname" . }}
   replicas: 1
   selector:
     matchLabels:
@@ -55,11 +56,25 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 20
         resources: {{- toYaml .Values.resources.exporter | nindent 10 }}
-      volumes:
-        - name: data
-          {{- if .Values.persistence.enabled }}
-          persistentVolumeClaim:
-            claimName: mongodb
-          {{- else }}
-          emptyDir: {}
-          {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: {{ .Values.persistence.size }}
+      {{- if .Values.persistence.storageClass }}
+      storageClassName: {{ .Values.persistence.storageClass }}
+      {{- end }}
+  {{- else }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi
+  {{- end }}

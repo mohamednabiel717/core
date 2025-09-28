@@ -11,6 +11,12 @@ spec:
   - host: {{ .Values.ingress.host }}
     http:
       paths:
+      - path: /static
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "frontend.fullname" . }}
+            port: { number: 80 }
       - path: /
         pathType: Prefix
         backend:

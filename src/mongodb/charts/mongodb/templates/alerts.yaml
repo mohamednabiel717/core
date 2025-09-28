@@ -1,0 +1,32 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "mongodb.fullname" . }}-alerts
+  namespace: {{ .Values.alerts.namespace | default "monitoring" }}
+  labels:
+    release: monitoring
+    {{- include "mongodb.labels" . | nindent 4 }}
+spec:
+  groups:
+  - name: mongodb
+    rules:
+    - alert: MongoDBDown
+      expr: up{job="mongodb"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: mongodb
+        env: {{ .Values.alerts.env | default "local" }}
+      annotations:
+        summary: "MongoDB instance is down"
+    - alert: MongoDBHighConnections
+      expr: mongodb_connections{state="current"} > {{ .Values.alerts.connectionThreshold | default 80 }}
+      for: 5m
+      labels:
+        severity: warning
+        service: mongodb
+        env: {{ .Values.alerts.env | default "local" }}
+      annotations:
+        summary: "MongoDB has high number of connections ({{ "{{ $value }}" }})"
+{{- end }}

@@ -52,26 +52,26 @@ def after_request(resp):
         pass
     return resp
 
-@app.route("/healthz", methods=["GET"])
+@app.route("/api/healthz", methods=["GET"])
 def healthz():
     return ("ok", 200)
 
-@app.route("/readyz", methods=["GET"])
+@app.route("/api/readyz", methods=["GET"])
 def readyz():
     # in a real check, verify DB health; for now just say ready
     return ("ok", 200)
 
-@app.route("/metrics", methods=["GET"])
+@app.route("/api/metrics", methods=["GET"])
 def metrics():
     return Response(generate_latest(registry), mimetype=CONTENT_TYPE_LATEST)
 
-@app.route("/fail", methods=["GET"])
+@app.route("/api/fail", methods=["GET"])
 def fail():
     # forced 500 to test alerts
     return ("boom", 500)
 
 # Data endpoints (use only if Mongo is configured/running)
-@app.route("/messages", methods=["GET"])
+@app.route("/api/messages", methods=["GET"])
 def get_messages():
     if not mongo:
         return jsonify({"error": "DB not configured"}), 503
@@ -79,7 +79,7 @@ def get_messages():
     msg_list = list(mongo.db.messages.find({}, field_mask).sort("_id", -1))
     return jsonify(msg_list), 200
 
-@app.route("/messages", methods=["POST"])
+@app.route("/api/messages", methods=["POST"])
 def add_message():
     if not mongo:
         return jsonify({"error": "DB not configured"}), 503

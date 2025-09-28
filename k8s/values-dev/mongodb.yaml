@@ -5,9 +5,8 @@ serviceMonitor:
   additionalLabels:
     release: monitoring
 
-# (Optional) override images/tags here if you ever need to
-# image:
-#   tag: 7.0.14-ubuntu2204
-# exporter:
-#   image:
-#     tag: "0.40.0"
+alerts:
+  enabled: true
+
+resourceQuota:
+  enabled: true

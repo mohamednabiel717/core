@@ -2,10 +2,26 @@
 alertmanager:
   enabled: true
   alertmanagerSpec:
-    configSecret: alertmanager-config
+    # Use AlertmanagerConfig CRDs instead of configSecret
+    alertmanagerConfigSelector:
+      matchLabels:
+        alertmanagerConfig: main
+    alertmanagerConfigNamespaceSelector: {}
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
 
 grafana:
   adminPassword: admin
+  persistence:
+    enabled: true
+    storageClassName: standard
+    size: 1Gi
   service:
     port: 80
     targetPort: 3000
@@ -34,4 +50,14 @@ grafana:
 prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
     ruleSelectorNilUsesHelmValues: false
+    ruleNamespaceSelector: {}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi

@@ -40,3 +40,14 @@ hpa:
         target:
           type: Utilization
           averageUtilization: 60
+
+resourceQuota:
+  enabled: false
+  requests:
+    cpu: "1"
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+  pods: "5"
+  pvcs: "1"

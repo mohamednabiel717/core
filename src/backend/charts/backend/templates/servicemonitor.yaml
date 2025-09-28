@@ -12,6 +12,6 @@ spec:
       app.kubernetes.io/name: {{ include "backend.name" . }}
   endpoints:
   - port: http
-    path: /metrics
+    path: /api/metrics
     interval: {{ .Values.prometheus.serviceMonitor.interval }}
 {{- end }}

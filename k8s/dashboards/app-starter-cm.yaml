@@ -108,7 +108,7 @@ data:
           "title": "CPU Usage by Pod (Alert: >90%)",
           "id": 9,
           "targets": [
-            { "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"guestbook\",container!=\"\"}[5m])) by (pod) * 100", "legendFormat": "{{pod}}" },
+            { "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"frontend|backend\",container!=\"\"}[5m])) by (pod) * 100", "legendFormat": "{{pod}}" },
             { "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"data\",container!=\"\"}[5m])) by (pod) * 100", "legendFormat": "{{pod}} (MongoDB)" }
           ],
           "gridPos": { "x": 0, "y": 20, "w": 8, "h": 8 },
@@ -116,10 +116,10 @@ data:
         },
         {
           "type": "timeseries",
-          "title": "Memory Usage by Pod (Alert: >90%)",
+          "title": "Service Health Status",
           "id": 10,
           "targets": [
-            { "expr": "(sum(container_memory_working_set_bytes{namespace=\"guestbook\",container!=\"\"}) by (pod) / sum(container_spec_memory_limit_bytes{namespace=\"guestbook\",container!=\"\"}) by (pod)) * 100", "legendFormat": "{{pod}} %" },
+            { "expr": "up{job=~\"frontend|backend\"}", "legendFormat": "{{job}} - {{instance}}" },
             { "expr": "(sum(container_memory_working_set_bytes{namespace=\"data\",container!=\"\"}) by (pod) / sum(container_spec_memory_limit_bytes{namespace=\"data\",container!=\"\"}) by (pod)) * 100", "legendFormat": "{{pod}} % (MongoDB)" }
           ],
           "gridPos": { "x": 8, "y": 20, "w": 8, "h": 8 },
@@ -130,8 +130,8 @@ data:
           "title": "Storage I/O",
           "id": 11,
           "targets": [
-            { "expr": "sum(rate(container_fs_reads_bytes_total{namespace=~\"guestbook|data\"}[5m])) by (namespace) / 1024 / 1024", "legendFormat": "{{namespace}} Read MB/s" },
-            { "expr": "sum(rate(container_fs_writes_bytes_total{namespace=~\"guestbook|data\"}[5m])) by (namespace) / 1024 / 1024", "legendFormat": "{{namespace}} Write MB/s" }
+            { "expr": "sum(rate(container_fs_reads_bytes_total{namespace=~\"frontend|backend|data\"}[5m])) by (namespace) / 1024 / 1024", "legendFormat": "{{namespace}} Read MB/s" },
+            { "expr": "sum(rate(container_fs_writes_bytes_total{namespace=~\"frontend|backend|data\"}[5m])) by (namespace) / 1024 / 1024", "legendFormat": "{{namespace}} Write MB/s" }
           ],
           "gridPos": { "x": 16, "y": 20, "w": 8, "h": 8 },
           "fieldConfig": { "defaults": { "unit": "MBs" } }
@@ -182,8 +182,8 @@ data:
           "title": "Network Traffic",
           "id": 13,
           "targets": [
-            { "expr": "sum(rate(container_network_receive_bytes_total{namespace=~\"guestbook|data\"}[5m])) by (namespace) / 1024", "legendFormat": "{{namespace}} RX KB/s" },
-            { "expr": "sum(rate(container_network_transmit_bytes_total{namespace=~\"guestbook|data\"}[5m])) by (namespace) / 1024", "legendFormat": "{{namespace}} TX KB/s" }
+            { "expr": "sum(rate(container_network_receive_bytes_total{namespace=~\"frontend|backend|data\"}[5m])) by (namespace) / 1024", "legendFormat": "{{namespace}} RX KB/s" },
+            { "expr": "sum(rate(container_network_transmit_bytes_total{namespace=~\"frontend|backend|data\"}[5m])) by (namespace) / 1024", "legendFormat": "{{namespace}} TX KB/s" }
           ],
           "gridPos": { "x": 8, "y": 28, "w": 8, "h": 8 },
           "fieldConfig": { "defaults": { "unit": "KBs" } }
@@ -194,7 +194,7 @@ data:
           "id": 14,
           "datasource": { "type": "loki" },
           "targets": [
-            { "expr": "{namespace=\"guestbook\"}", "refId": "A" }
+            { "expr": "{namespace=~\"frontend|backend|data\"}", "refId": "A" }
           ],
           "gridPos": { "x": 16, "y": 28, "w": 8, "h": 8 },
           "options": { "showTime": true, "showLabels": true, "sortOrder": "Descending" }

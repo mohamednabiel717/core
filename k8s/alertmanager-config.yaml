@@ -1,0 +1,44 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: pagerduty-config
+  namespace: monitoring
+  labels:
+    alertmanagerConfig: main
+spec:
+  route:
+    groupBy: ['alertname']
+    receiver: 'pagerduty'
+    routes:
+    - matchers:
+      - name: severity
+        value: critical
+      receiver: 'pagerduty-critical'
+    - matchers:
+      - name: severity
+        value: warning
+      receiver: 'pagerduty-warning'
+  receivers:
+  - name: 'pagerduty-critical'
+    pagerdutyConfigs:
+    - routingKey:
+        key: routing-key
+        name: pagerduty-secret
+      severity: critical
+      description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+      client: 'Kubernetes Monitoring'
+  - name: 'pagerduty-warning'
+    pagerdutyConfigs:
+    - routingKey:
+        key: routing-key
+        name: pagerduty-secret
+      severity: warning
+      description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+      client: 'Kubernetes Monitoring'
+  - name: 'pagerduty'
+    pagerdutyConfigs:
+    - routingKey:
+        key: routing-key
+        name: pagerduty-secret
+      description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+      client: 'Kubernetes Monitoring'
