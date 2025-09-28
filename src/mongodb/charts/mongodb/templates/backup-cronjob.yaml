@@ -1,0 +1,29 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "mongodb.fullname" . }}-backup
+  labels: {{- include "mongodb.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: mongo:{{ .Values.image.tag }}
+            command:
+            - /bin/bash
+            - -c
+            - |
+              mongodump --host {{ include "mongodb.fullname" . }}:27017 --out /backup/$(date +%Y%m%d_%H%M%S)
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: {{ include "mongodb.fullname" . }}-backup-pvc
+          restartPolicy: OnFailure
+{{- end }}

@@ -1,0 +1,13 @@
+{{- if .Values.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "frontend.fullname" . | default .Chart.Name }}-pdb
+  labels:
+    {{- if (include "frontend.labels" .) }}{{ include "frontend.labels" . | nindent 4 }}{{- end }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "frontend.name" . | default .Chart.Name }}
+{{- end }}

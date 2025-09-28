@@ -3,37 +3,120 @@ A sample backend server. Saves and retrieves entries using mongodb
 """
 import os
 import time
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_pymongo import PyMongo
 import bleach
 
+# ---- Observability (Prometheus) --------------------------------------------
+from prometheus_client import (
+    Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST,
+    CollectorRegistry, ProcessCollector, PlatformCollector, GCCollector,
+)
+
+registry = CollectorRegistry()
+# default process/platform/GC collectors
+ProcessCollector(registry=registry)
+PlatformCollector(registry=registry)
+GCCollector(registry=registry)
+
+HTTP_REQUESTS = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "endpoint", "code", "job"],
+    registry=registry,
+)
+
+HTTP_REQUEST_DURATION = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "endpoint", "job"],
+    registry=registry,
+)
+
+# ---- App -------------------------------------------------------------------
 app = Flask(__name__)
-app.config["MONGO_URI"] = 'mongodb://{}/guestbook'.format(os.environ.get('GUESTBOOK_DB_ADDR'))
-mongo = PyMongo(app)
 
-@app.route('/messages', methods=['GET'])
+# Mongo config (safe if env absent for local sanity — we just won't call /messages)
+mongo_uri = os.environ.get("GUESTBOOK_DB_ADDR")
+if mongo_uri:
+    app.config["MONGO_URI"] = f"mongodb://{mongo_uri}/guestbook"
+    mongo = PyMongo(app)
+else:
+    mongo = None  # ok for local sanity when DB not present
+
+# ---- Routes ----------------------------------------------------------------
+
+@app.before_request
+def before_request():
+    request.start_time = time.time()
+
+@app.after_request
+def after_request(resp):
+    try:
+        # Record request duration
+        if hasattr(request, 'start_time'):
+            duration = time.time() - request.start_time
+            HTTP_REQUEST_DURATION.labels(
+                method=request.method,
+                endpoint=request.path,
+                job="backend",
+            ).observe(duration)
+        
+        # Record request count
+        HTTP_REQUESTS.labels(
+            method=request.method,
+            endpoint=request.path,
+            code=resp.status_code,
+            job="backend",
+        ).inc()
+    except Exception:
+        pass
+    return resp
+
+@app.route("/api/healthz", methods=["GET"])
+def healthz():
+    return ("ok", 200)
+
+@app.route("/api/readyz", methods=["GET"])
+def readyz():
+    # in a real check, verify DB health; for now just say ready
+    return ("ok", 200)
+
+@app.route("/api/metrics", methods=["GET"])
+def metrics():
+    return Response(generate_latest(registry), mimetype=CONTENT_TYPE_LATEST)
+
+@app.route("/api/fail", methods=["GET"])
+def fail():
+    # forced 500 to test alerts
+    return ("boom", 500)
+
+# Data endpoints (use only if Mongo is configured/running)
+@app.route("/api/messages", methods=["GET"])
 def get_messages():
-    """ retrieve and return the list of messages on GET request """
-    field_mask = {'author':1, 'message':1, 'date':1, '_id':0}
+    if not mongo:
+        return jsonify({"error": "DB not configured"}), 503
+    field_mask = {"author": 1, "message": 1, "date": 1, "_id": 0}
     msg_list = list(mongo.db.messages.find({}, field_mask).sort("_id", -1))
-    return jsonify(msg_list), 201
+    return jsonify(msg_list), 200
 
-@app.route('/messages', methods=['POST'])
+@app.route("/api/messages", methods=["POST"])
 def add_message():
-    """ save a new message on POST request """
-    raw_data = request.get_json()
-    msg_data = {'author':bleach.clean(raw_data['author']),
-                'message':bleach.clean(raw_data['message']),
-                'date':time.time()}
+    if not mongo:
+        return jsonify({"error": "DB not configured"}), 503
+    raw_data = request.get_json() or {}
+    msg_data = {
+        "author": bleach.clean(raw_data.get("author", "")),
+        "message": bleach.clean(raw_data.get("message", "")),
+        "date": time.time(),
+    }
     mongo.db.messages.insert_one(msg_data)
-    return  jsonify({}), 201
+    return jsonify({}), 201
 
-if __name__ == '__main__':
-    for v in ['PORT', 'GUESTBOOK_DB_ADDR']:
-        if os.environ.get(v) is None:
-            print("error: {} environment variable not set".format(v))
-            exit(1)
-
-    # start Flask server
-    # Flask's debug mode is unrelated to ptvsd debugger used by Cloud Code
-    app.run(debug=False, port=os.environ.get('PORT'), host='0.0.0.0')
+# ---- Main ------------------------------------------------------------------
+if __name__ == "__main__":
+    # allow local run without enforcing envs (k8s will set them)
+    port = int(os.environ.get("PORT", "8080"))
+    print("BACKEND starting… file:", __file__)
+    print("Routes:", [str(r) for r in app.url_map.iter_rules()])
+    app.run(debug=False, host="0.0.0.0", port=port)

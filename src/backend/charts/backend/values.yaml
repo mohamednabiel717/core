@@ -1,0 +1,61 @@
+image:
+  repository: localhost:5000/python-guestbook-backend
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8080
+
+ingress:
+  enabled: true
+  host: localhost           # access via http://localhost or http://localhost:8080 if you mapped 8080
+
+resources:
+  requests: { cpu: 200m, memory: 256Mi }
+  limits:   { cpu: 800m, memory: 512Mi }
+
+env:
+  PORT: "8080"
+  GUESTBOOK_DB_ADDR: "mongodb.data:27017"
+
+prometheus:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  rule:
+    enabled: true          # we’ll enable in Step 3B after FE is up
+    errorRateThreshold: 0.05
+pdb:
+  enabled: true
+  minAvailable: 1          # with replicas=1 this blocks voluntary evictions
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    # Use CPU % of requested as the primary signal
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Optional second signal: memory
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+resourceQuota:
+  enabled: false
+  requests:
+    cpu: "2"
+    memory: 2Gi
+  limits:
+    cpu: "4"
+    memory: 4Gi
+  pods: "10"
+  pvcs: "2"

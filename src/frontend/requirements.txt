@@ -1,4 +1,9 @@
-Flask==2.0.2
-requests==2.27.1
+Flask==3.0.0
+Werkzeug==3.0.1
+Flask-PyMongo==2.3.0
+pymongo==4.6.3
+bleach==6.1.0
+prometheus_client==0.20.0
+gunicorn==21.2.0
+requests==2.31.0
 python-dateutil==2.8.2
-ptvsd==4.3.2 # Required for debugging.

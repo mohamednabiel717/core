@@ -1,0 +1,52 @@
+image:
+  repository: mongodb/mongodb-community-server
+  tag: 7.0.14-ubuntu2204
+  pullPolicy: IfNotPresent
+
+exporter:
+  image:
+    repository: percona/mongodb_exporter
+    tag: "0.40.0"
+    pullPolicy: IfNotPresent
+
+resources:
+  mongod:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+  exporter:
+    requests: { cpu: 50m,  memory: 64Mi }
+    limits:   { cpu: 200m, memory: 256Mi }
+
+persistence:
+  enabled: false             # emptyDir for kind (ephemeral)
+  size: 1Gi                  # small size for local dev
+  storageClass: ""           # use default storage class
+
+fullnameOverride: mongodb    # Service DNS => mongodb.<ns>.svc
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  additionalLabels:
+    release: monitoring
+
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+
+alerts:
+  enabled: false
+  namespace: monitoring
+  env: local
+  connectionThreshold: 80
+
+resourceQuota:
+  enabled: false
+  requests:
+    cpu: "1"
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+  pods: "5"
+  pvcs: "5"

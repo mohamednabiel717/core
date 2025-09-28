@@ -1,0 +1,13 @@
+# Enable Prometheus scraping and label it so kube-prometheus-stack discovers it
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  additionalLabels:
+    release: monitoring
+
+alerts:
+  enabled: true
+  namespace: monitoring
+
+resourceQuota:
+  enabled: true
