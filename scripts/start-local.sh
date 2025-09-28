@@ -86,10 +86,24 @@ helm upgrade --install metrics-server metrics-server/metrics-server \
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   -n monitoring --create-namespace \
   -f k8s/monitoring-values.yaml \
-  --set-string alertmanager.config.receivers[0].pagerduty_configs[0].routing_key="${PD_ROUTING_KEY:-}" \
-  --set-string alertmanager.config.receivers[1].pagerduty_configs[0].routing_key="${PD_ROUTING_KEY:-}" \
-  --set-string alertmanager.config.receivers[2].pagerduty_configs[0].routing_key="${PD_ROUTING_KEY:-}" \
   --wait
+
+# Configure PagerDuty integration
+if [ -n "${PD_ROUTING_KEY:-}" ]; then
+  echo "[*] Configuring PagerDuty integration..."
+  # Create the secret with the actual routing key
+  kubectl create secret generic pagerduty-secret \
+    --from-literal=routing-key="$PD_ROUTING_KEY" \
+    -n monitoring --dry-run=client -o yaml | kubectl apply -f -
+  
+  # Apply AlertmanagerConfig
+  kubectl apply -f k8s/alertmanager-config.yaml
+  echo "✅ PagerDuty integration configured"
+else
+  echo "⚠️  Warning: PD_ROUTING_KEY not set. PagerDuty alerts will not work."
+  echo "   Set it with: export PD_ROUTING_KEY=your_pagerduty_integration_key"
+  echo "   Then run: kubectl apply -f k8s/alertmanager-config.yaml"
+fi
 # 7) logging stack (Loki + Promtail)
 kubectl create ns logging 2>/dev/null || true
 helm upgrade --install loki grafana/loki-stack -n logging \

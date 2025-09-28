@@ -5,10 +5,10 @@ alertmanager:
     global:
       resolve_timeout: 5m
     route:
-      group_by: ['alertname']
+      group_by: ['alertname', 'cluster', 'service']
       group_wait: 10s
       group_interval: 10s
-      repeat_interval: 30s
+      repeat_interval: 12h
       receiver: 'pagerduty'
       routes:
       - match:
@@ -20,22 +20,23 @@ alertmanager:
     receivers:
     - name: 'pagerduty-critical'
       pagerduty_configs:
-      - routing_key: 'PLACEHOLDER_ROUTING_KEY'
+      - routing_key_file: /etc/alertmanager/secrets/pagerduty-secret/routing-key
         severity: critical
         description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
         client: 'Kubernetes Monitoring'
     - name: 'pagerduty-warning'
       pagerduty_configs:
-      - routing_key: 'PLACEHOLDER_ROUTING_KEY'
+      - routing_key_file: /etc/alertmanager/secrets/pagerduty-secret/routing-key
         severity: warning
         description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
         client: 'Kubernetes Monitoring'
     - name: 'pagerduty'
       pagerduty_configs:
-      - routing_key: 'PLACEHOLDER_ROUTING_KEY'
+      - routing_key_file: /etc/alertmanager/secrets/pagerduty-secret/routing-key
         description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
         client: 'Kubernetes Monitoring'
   alertmanagerSpec:
+    secrets: ['pagerduty-secret']
     storage:
       volumeClaimTemplate:
         spec:

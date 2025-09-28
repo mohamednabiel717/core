@@ -7,10 +7,10 @@ metadata:
     alertmanagerConfig: main
 spec:
   route:
-    groupBy: ['alertname']
+    groupBy: ['alertname', 'cluster', 'service']
     groupWait: 10s
     groupInterval: 10s
-    repeatInterval: 30s
+    repeatInterval: 12h
     receiver: 'pagerduty'
     routes:
     - matchers:
@@ -30,6 +30,7 @@ spec:
       severity: critical
       description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
       client: 'Kubernetes Monitoring'
+      url: 'https://events.pagerduty.com/v2/enqueue'
   - name: 'pagerduty-warning'
     pagerdutyConfigs:
     - routingKey:
@@ -38,6 +39,7 @@ spec:
       severity: warning
       description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
       client: 'Kubernetes Monitoring'
+      url: 'https://events.pagerduty.com/v2/enqueue'
   - name: 'pagerduty'
     pagerdutyConfigs:
     - routingKey:
@@ -45,3 +47,4 @@ spec:
         name: pagerduty-secret
       description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
       client: 'Kubernetes Monitoring'
+      url: 'https://events.pagerduty.com/v2/enqueue'
